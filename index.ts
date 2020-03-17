@@ -1,4 +1,5 @@
 import { Observable, Subscription } from 'rxjs';
+import { filter } from 'rxjs/operators';
 import { Space } from '@pestras/space';
 import { Layer } from '@pestras/space/containers/layer';
 import { chartState, ChartStyle } from './chart-state';
@@ -22,11 +23,12 @@ export class OrgChart {
 
   constructor(id: string, data$: Observable<OrgChartNode[]>, style: ChartStyle = {}, rtl = false) {
     chartState.rtl = rtl;
+    rtl && state.canvas.setAttribute('dir', 'rtl');
     for (let cat in style) Object.assign(chartState.style[cat as keyof ChartStyle], style[cat as keyof ChartStyle]);
     this.space = new Space(id, { axis: false });
     this.space.options.bgc = '#FFFFFF';
     this.space.addLayers(this.chartLayer);
-    this.dataSub = data$.subscribe(data => {
+    this.dataSub = data$.pipe(filter(data => !!data)).subscribe(data => {
       this.data = data;
       this.createChart()
     });
