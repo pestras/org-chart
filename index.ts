@@ -16,7 +16,7 @@ export class OrgChart {
   private space: Space;
   private chartLayer = new Layer();
   private nodes: ChartNode[][] = [];
-  private data: OrgChartNode[];
+  private data: OrgChartNode[] = null;
   private linkPaths: LinkPath[] = [];
 
   readonly nodeClick$ = chartState.click$;
@@ -95,7 +95,6 @@ export class OrgChart {
 
   private createChart() {
     this.clean();
-    this.generateLevels(this.data);
     let levels = this.generateLevels(this.data);
     let currLevelIndex = levels.length - 1;
     let currLevelData = levels[currLevelIndex];
@@ -186,7 +185,7 @@ export class OrgChart {
   set rtl(val: boolean) {
     state.canvas.setAttribute('dir', val ? 'rtl' : 'ltr');
     chartState.rtl = val;
-    this.createChart()
+    if (this.data) this.createChart();
   }
 
   get zoomMode() { return this.space.zoomMode; }
