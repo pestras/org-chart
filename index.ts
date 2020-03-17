@@ -9,50 +9,51 @@ import { LinkPath } from './link-path';
 import { Vec } from '@pestras/space/geometery/measure';
 import { state } from '@pestras/space/state';
 
-export type OrgChartNode = BasicNodeData
+export { BasicNodeData as OrgChartNode } 
+
+export interface OrgChartOptions {
+  style?: ChartStyle;
+  rtl?: boolean;
+  initialZoom?: number;
+  bgc?: string;
+}
 
 export class OrgChart {
   private dataSub: Subscription;
   private space: Space;
-  private chartLayer = new Layer();
+  private chartLayer: Layer;
   private nodes: ChartNode[][] = [];
-  private data: OrgChartNode[] = null;
+  private data: BasicNodeData[];
   private linkPaths: LinkPath[] = [];
 
   readonly nodeClick$ = chartState.click$;
 
-  constructor(id: string, data$: Observable<OrgChartNode[]>, style: ChartStyle = {}, rtl = false) {
-    chartState.rtl = rtl;
-    rtl && state.canvas.setAttribute('dir', 'rtl');
-    for (let cat in style) Object.assign(chartState.style[cat as keyof ChartStyle], style[cat as keyof ChartStyle]);
+  constructor(id: string, data$: Observable<BasicNodeData[]>, options: OrgChartOptions = {}) {
+    if (options.rtl !== undefined) chartState.rtl = options.rtl;
+    options.rtl && state.canvas.setAttribute('dir', 'rtl');
+    if (options.style)
+      for (let cat in options.style)
+        Object.assign(chartState.style[cat as keyof ChartStyle], options.style[cat as keyof ChartStyle]);
+
     this.space = new Space(id, { axis: false });
-    this.space.options.bgc = '#FFFFFF';
-    this.space.addLayers(this.chartLayer);
+    this.space.options.bgc = options.bgc || '#FFFFFF';
+    if (options.initialZoom) this.space.zoom(options.initialZoom - 1);
     this.dataSub = data$.pipe(filter(data => !!data)).subscribe(data => {
       this.data = data;
       this.createChart()
     });
-    this.space.zoom(-0.25);
-    this.space.render();
   }
 
-  protected clean() {
-    for (let level of this.nodes) for (let node of level) node.destroy();
-    for (let linkPath of this.linkPaths) linkPath.destroy();
-    this.nodes = [];
-    this.linkPaths = [];
-  }
-
-  private generateLevels(data: OrgChartNode[]) {
+  private generateLevels(data: BasicNodeData[]) {
     let root = data.find(entity => !entity.pid);
-    let levels: OrgChartNode[][] = [];
+    let levels: BasicNodeData[][] = [];
     if (!root) return;
 
     let currentLevel = [root];
 
     while (currentLevel.length > 0) {
       levels.push(currentLevel.sort((a, b) => a.pid < b.pid ? -1 : 1));
-      let nextLevel: OrgChartNode[] = [];
+      let nextLevel: BasicNodeData[] = [];
 
       for (let i = 0; i < currentLevel.length; i++) {
         let orgData = data.filter(entity => entity.pid === currentLevel[i].id);
@@ -64,7 +65,7 @@ export class OrgChart {
     return levels;
   }
 
-  private createNodes(nodesData: OrgChartNode[], level: number) {
+  private createNodes(nodesData: BasicNodeData[], level: number) {
     let nodes: ChartNode[] = [];
     let lastNode: ChartNode;
     for (let i = 0; i < nodesData.length; i++) {
@@ -95,6 +96,8 @@ export class OrgChart {
 
   private createChart() {
     this.clean();
+    this.chartLayer = new Layer();
+    this.space.addLayers(this.chartLayer);
     let levels = this.generateLevels(this.data);
     let currLevelIndex = levels.length - 1;
     let currLevelData = levels[currLevelIndex];
@@ -156,13 +159,11 @@ export class OrgChart {
         let restNodesData = currLevelData.filter(item => currLevelNodes.findIndex(_item => _item.id === item.id) === -1);
 
         if (restNodesData.length > 0) {
-          console.log(currLevelNodes);
           let lastNode = currLevelNodes[currLevelNodes.length - 1];
           for (let i = 0; i < restNodesData.length; i++) {
             const curr = restNodesData[i];
             let currNode = new BasicNode(this.chartLayer, curr);
             currNode.make(lastNode.pos.add(390, 0));
-            console.log(lastNode.id, lastNode.pos, lastNode.pos.add(370, 0));
             currLevelNodes.push(currNode);
             lastNode = currNode;
           }
@@ -175,17 +176,21 @@ export class OrgChart {
     }
 
     currLevelNodes[0].box.pos = new Vec(-175, -200);
+    this.space.render();
   }
 
-  zoom(amount: number, out = false) {
-    this.space.zoom(amount, out);
+  zoom(amount: number) {
+    this.space.zoom(amount);
   }
 
   get rtl() { return state.canvas.getAttribute('dir') === 'rtl'; }
   set rtl(val: boolean) {
     state.canvas.setAttribute('dir', val ? 'rtl' : 'ltr');
     chartState.rtl = val;
-    if (this.data) this.createChart();
+    if (this.data) {
+      this.clean();
+      this.createChart();
+    }
   }
 
   get zoomMode() { return this.space.zoomMode; }
@@ -193,19 +198,22 @@ export class OrgChart {
     this.space.zoomMode = val;
   }
 
-  get panMode() { return this.space.panMode; }
-  set panMode(val: boolean) {
-    this.space.panMode = val;
-  }
-
   get bgc() { return this.space.options.bgc; }
   set bgc(val: string) {
     this.space.options.bgc = val;
   }
 
+  protected clean(resetTransform = false) {
+    for (let level of this.nodes) for (let node of level) node.destroy();
+    for (let linkPath of this.linkPaths) linkPath.destroy();
+    this.nodes = [];
+    this.linkPaths = [];
+    this.space.clear(true, resetTransform);
+    this.chartLayer = null;
+  }
+
   destroy() {
     if (this.dataSub) this.dataSub.unsubscribe();
-    this.clean();
-    this.space.resetTransform();
+    this.clean(true);
   }
 }
