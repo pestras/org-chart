@@ -16,6 +16,7 @@ export interface OrgChartOptions {
   rtl?: boolean;
   initialZoom?: number;
   bgc?: string;
+  rootYPos?: number;
 }
 
 export class OrgChart {
@@ -25,6 +26,7 @@ export class OrgChart {
   private nodes: ChartNode[][] = [];
   private data: BasicNodeData[];
   private linkPaths: LinkPath[] = [];
+  private rootYPos = -200;
 
   readonly nodeClick$ = chartState.click$;
 
@@ -35,6 +37,7 @@ export class OrgChart {
       for (let cat in options.style)
         Object.assign(chartState.style[cat as keyof ChartStyle], options.style[cat as keyof ChartStyle]);
 
+    options.rootYPos && (this.rootYPos = options.rootYPos);
     this.space = new Space(id, { axis: false });
     this.space.options.bgc = options.bgc || '#FFFFFF';
     if (options.initialZoom) this.space.zoom(options.initialZoom - 1);
@@ -110,6 +113,10 @@ export class OrgChart {
       if (currLevelIndex === levels.length - 1) {
         prevLevelNodes = this.createNodes(currLevelData, currLevelIndex)
         this.nodes.unshift(prevLevelNodes);
+        if (currLevelIndex === 0) {
+          currLevelNodes = prevLevelNodes;
+          break;
+        };
         currLevelData = levels[--currLevelIndex];
         continue;
       }
@@ -175,7 +182,7 @@ export class OrgChart {
       lastGroupIndex = 0;
     }
 
-    currLevelNodes[0].box.pos = new Vec(-175, -200);
+    currLevelNodes[0].box.pos = new Vec(-175, this.rootYPos);
     this.space.render();
   }
 

@@ -1,6 +1,6 @@
 {
   "name": "@pestras/org-chart",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Org chart Diagram",
   "main": "index.js",
   "types": "index.ts",
