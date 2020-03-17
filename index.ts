@@ -206,5 +206,6 @@ export class OrgChart {
   destroy() {
     if (this.dataSub) this.dataSub.unsubscribe();
     this.clean();
+    this.space.resetTransform();
   }
 }
