@@ -17,6 +17,10 @@ export interface OrgChartOptions {
   initialZoom?: number;
   bgc?: string;
   rootYPos?: number;
+  orientation?: 'top' | 'right' | 'bottom' | 'left',
+  siblingsSpace?: number;
+  groupsSpace?: number;
+  levelSpace?: number;
 }
 
 export class OrgChart {
@@ -27,6 +31,10 @@ export class OrgChart {
   private data: BasicNodeData[];
   private linkPaths: LinkPath[] = [];
   private rootYPos = -200;
+  private orientation: 'top' | 'right' | 'bottom' | 'left' = 'top';
+  private siblingsSpace = 20;
+  private groupsSpace = 40;
+  private levelSpace = 80;
 
   readonly nodeClick$ = chartState.click$;
 
@@ -38,6 +46,11 @@ export class OrgChart {
         Object.assign(chartState.style[cat as keyof ChartStyle], options.style[cat as keyof ChartStyle]);
 
     options.rootYPos && (this.rootYPos = options.rootYPos);
+    options.orientation && (this.orientation = options.orientation);
+    options.siblingsSpace && (this.siblingsSpace = options.siblingsSpace);
+    options.groupsSpace && (this.groupsSpace = options.groupsSpace);
+    options.levelSpace && (this.levelSpace = options.levelSpace);
+
     this.space = new Space(id, { axis: false });
     this.space.options.bgc = options.bgc || '#FFFFFF';
     if (options.initialZoom) this.space.zoom(options.initialZoom - 1);
@@ -65,36 +78,49 @@ export class OrgChart {
 
       currentLevel = nextLevel;
     }
+
     return levels;
   }
 
   private createNodes(nodesData: BasicNodeData[], level: number) {
-    let nodes: ChartNode[] = [];
-    let lastNode: ChartNode;
+    let nodes: ChartNode[] = [], lastNode: ChartNode;
+
     for (let i = 0; i < nodesData.length; i++) {
       let node = new BasicNode(this.chartLayer, nodesData[i]);
-      node.make(lastNode ? lastNode.pos.add(lastNode.pid === node.pid ? 370 : 390, 0) : new Vec(0, 160 * level));
+
+      if (this.orientation === 'top') node.make(lastNode
+        ? lastNode.pos.add(350 + (lastNode.pid === node.pid ? this.siblingsSpace : this.groupsSpace), 0)
+        : new Vec(0, (80 + this.levelSpace) * level));
+      if (this.orientation === 'bottom') node.make(lastNode
+        ? lastNode.pos.add(350 + (lastNode.pid === node.pid ? this.siblingsSpace : this.groupsSpace), 0)
+        : new Vec(0, (-80 - this.levelSpace) * level));
+      else if (this.orientation === 'right') node.make(lastNode
+        ? lastNode.pos.add(0, 80 + (lastNode.pid === node.pid ? this.siblingsSpace : this.groupsSpace))
+        : new Vec((-350 - this.levelSpace) * level, 0));
+      else if (this.orientation === 'left') node.make(lastNode
+        ? lastNode.pos.add(0, 80 + (lastNode.pid === node.pid ? this.siblingsSpace : this.groupsSpace))
+        : new Vec((350 + this.levelSpace) * level, 0));
+
       !!lastNode && node.attach(lastNode);
       nodes.push(node);
       lastNode = node;
     }
+
     return nodes;
   }
 
   private getChildrenGroup(nodes: ChartNode[]) {
-    let group = [];
-    let pid: string = null;
+    let group = [], pid: string = null;
     for (let i = 0; i < nodes.length; i++) {
-      if (!pid) {
-        pid = nodes[i].pid;
-        group.push(nodes[i]);
-      } else if (pid === nodes[i].pid) {
-        group.push(nodes[i]);
-      } else {
-        break;
-      }
+      if (!pid) !!(pid = nodes[i].pid) && group.push(nodes[i]);
+      else if (pid === nodes[i].pid) group.push(nodes[i]);
+      else break;
     }
     return group;
+  }
+
+  private make() {
+
   }
 
   private createChart() {
@@ -129,11 +155,15 @@ export class OrgChart {
         let parentNode = new BasicNode(this.chartLayer, currLevelData.find(item => item.id === group[0].pid));
         currLevelNodes.push(parentNode);
         if (currLevelNodes.length > 1) parentNode.attach(currLevelNodes[length - 2]);
-        let xPos = group[0].pos.add(group[group.length - 1].pos).x / 2;
-        parentNode.make(new Vec(xPos, currLevelIndex * 160));
+        let pos: Vec;
+        if (this.orientation === 'top') pos = new Vec(group[0].pos.add(group[group.length - 1].pos).x / 2, currLevelIndex * (80 + this.levelSpace));
+        if (this.orientation === 'bottom') pos = new Vec(group[0].pos.add(group[group.length - 1].pos).x / 2, currLevelIndex * (-80 - this.levelSpace));
+        else if (this.orientation === 'right') pos = new Vec(currLevelIndex * (-350 - this.levelSpace), group[0].pos.add(group[group.length - 1].pos).y / 2);
+        else if (this.orientation === 'left') pos = new Vec(currLevelIndex * (350 + this.levelSpace), group[0].pos.add(group[group.length - 1].pos).y / 2);
+        parentNode.make(pos);
         group.forEach(node => {
           node.attach(parentNode)
-          this.linkPaths.push(new LinkPath(this.chartLayer, parentNode, node));
+          this.linkPaths.push(new LinkPath(this.chartLayer, parentNode, node, this.orientation, this.levelSpace));
         });
       }
 
@@ -141,14 +171,19 @@ export class OrgChart {
       if (currLevelNodes.length < currLevelData.length) {
         for (let i = 0; i < currLevelNodes.length; i++) {
           const curr = currLevelNodes[i];
+
           if (i < currLevelNodes.length - 1 && curr.pid === currLevelData[i + 1].pid) continue;
           let siblingsData = currLevelData.filter(item => item.pid === curr.pid && currLevelNodes.findIndex(_item => _item.id === item.id) === -1);
+
           if (siblingsData.length > 0) {
             let prevSiblingNode = curr;
             for (let j = 0; j < siblingsData.length; j++) {
               let siblingData = siblingsData[j];
               let siblingNode = new BasicNode(this.chartLayer, siblingData);
-              siblingNode.make(prevSiblingNode.pos.add(370, 0));
+
+              if (this.orientation === 'top' || this.orientation === 'bottom') siblingNode.make(prevSiblingNode.pos.add(350 + this.siblingsSpace, 0));
+              else if (this.orientation === 'right' || this.orientation === 'left') siblingNode.make(prevSiblingNode.pos.add(0, 80 + this.siblingsSpace));
+
               siblingNode.attach(prevSiblingNode);
               prevSiblingNode = siblingNode;
               if (i === currLevelNodes.length - 1) {
@@ -157,7 +192,11 @@ export class OrgChart {
               } else {
                 currLevelNodes.splice(i++, 0, siblingNode);
                 let nextNode = currLevelNodes[i + 1];
-                if (nextNode.pos.x - siblingNode.pos.x < 370) nextNode.pos = siblingNode.pos.add(370, 0);
+                if (this.orientation === 'top' || this.orientation === 'bottom') {
+                  if (nextNode.pos.x - siblingNode.pos.x < 350 + this.siblingsSpace) nextNode.pos = siblingNode.pos.add(350 + this.siblingsSpace, 0);
+                } else if (this.orientation === 'right' || this.orientation === 'left') {
+                  if (nextNode.pos.y - siblingNode.pos.y < 80 + this.siblingsSpace) nextNode.pos = siblingNode.pos.add(0, 80 + this.siblingsSpace);
+                }
               }
             }
           }
@@ -170,7 +209,9 @@ export class OrgChart {
           for (let i = 0; i < restNodesData.length; i++) {
             const curr = restNodesData[i];
             let currNode = new BasicNode(this.chartLayer, curr);
-            currNode.make(lastNode.pos.add(390, 0));
+            if (this.orientation === 'top' || orientation === 'bottom') currNode.make(lastNode.pos.add(350 + this.groupsSpace, 0));
+            else if (this.orientation === 'right' || this.orientation === 'left') currNode.make(lastNode.pos.add(0, 80 + this.groupsSpace));
+
             currLevelNodes.push(currNode);
             lastNode = currNode;
           }
@@ -182,7 +223,10 @@ export class OrgChart {
       lastGroupIndex = 0;
     }
 
-    currLevelNodes[0].box.pos = new Vec(-175, this.rootYPos);
+    if (this.orientation === 'top') currLevelNodes[0].box.pos = new Vec(-175, this.rootYPos);
+    else if (this.orientation === 'bottom') currLevelNodes[0].box.pos = new Vec(-175, -this.rootYPos);
+    else if (this.orientation === 'right') currLevelNodes[0].box.pos = new Vec(-this.rootYPos, -40);
+    else if (this.orientation === 'left') currLevelNodes[0].box.pos = new Vec(this.rootYPos, -40);
     this.space.render();
   }
 
@@ -198,11 +242,6 @@ export class OrgChart {
       this.clean();
       this.createChart();
     }
-  }
-
-  get zoomMode() { return this.space.zoomMode; }
-  set zoomMode(val: boolean) {
-    this.space.zoomMode = val;
   }
 
   get bgc() { return this.space.options.bgc; }

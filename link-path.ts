@@ -9,19 +9,43 @@ export class LinkPath {
   protected _path: Path;
   protected _circle: Circle;
 
-  constructor(protected layer: Layer, protected readonly from: ChartNode, protected readonly to: ChartNode) {
+  constructor(
+    protected layer: Layer,
+    protected readonly from: ChartNode,
+    protected readonly to: ChartNode,
+    orientation: 'top' | 'right' | 'bottom' | 'left' = 'top',
+    levelSpace = 80
+  ) {
     let pathBlocks: PathBlocks = [];
-    if (this.from.pos.x === this.to.pos.x) {
-      pathBlocks.push(['l', ['r', new Vec(0, 80)]]);
-    } else {
-      pathBlocks.push(
-        ['l', ['r', new Vec(0, 40)]],
-        ['l', ['r', new Vec(this.to.pos.getVecFrom(this.from.pos).x, 0)]],
-        ['l', ['r', new Vec(0, 40)]]
-      );
+    if (orientation === 'top' || orientation === 'bottom') {
+      let factor = orientation === 'bottom' ? -1 : 1;
+      if (this.from.pos.x === this.to.pos.x) {
+        pathBlocks.push(['l', ['r', new Vec(0, levelSpace * factor)]]);
+      } else {
+        pathBlocks.push(
+          ['l', ['r', new Vec(0, (levelSpace / 2) * factor)]],
+          ['l', ['r', new Vec(this.to.pos.getVecFrom(this.from.pos).x, 0)]],
+          ['l', ['r', new Vec(0, (levelSpace / 2) * factor)]]
+        );
+      }
+
+      this._path = new Path(this.from.pos.add(175, orientation === 'bottom' ? 0 : 80), ...pathBlocks);
+
+    } else if (orientation === 'right' || orientation === 'left') {
+      let factor = orientation === 'right' ? -1 : 1;
+      if (this.from.pos.y === this.to.pos.y) {
+        pathBlocks.push(['l', ['r', new Vec(levelSpace * factor, 0)]]);
+      } else {
+        pathBlocks.push(
+          ['l', ['r', new Vec((levelSpace / 2) * factor, 0)]],
+          ['l', ['r', new Vec(0, this.to.pos.getVecFrom(this.from.pos).y)]],
+          ['l', ['r', new Vec((levelSpace / 2) * factor, 0)]]
+        );
+      }
+
+      this._path = new Path(this.from.pos.add(orientation === 'right' ? 0 : 350, 40), ...pathBlocks);
     }
 
-    this._path = new Path(this.from.pos.add(175, 80), ...pathBlocks);
     this._path.style(chartState.style.linkPath);
     this._path.actionable = false;
 
