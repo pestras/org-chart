@@ -238,6 +238,7 @@ export class OrgChart {
   set rtl(val: boolean) {
     state.canvas.setAttribute('dir', val ? 'rtl' : 'ltr');
     chartState.rtl = val;
+    (this.orientation !== 'top' && this.orientation !== 'bottom') && (this.orientation = val === true ? 'right' : 'left');
     if (this.data) {
       this.clean();
       this.createChart();
