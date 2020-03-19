@@ -209,7 +209,7 @@ export class OrgChart {
           for (let i = 0; i < restNodesData.length; i++) {
             const curr = restNodesData[i];
             let currNode = new BasicNode(this.chartLayer, curr);
-            if (this.orientation === 'top' || orientation === 'bottom') currNode.make(lastNode.pos.add(350 + this.groupsSpace, 0));
+            if (this.orientation === 'top' || this.orientation === 'bottom') currNode.make(lastNode.pos.add(350 + this.groupsSpace, 0));
             else if (this.orientation === 'right' || this.orientation === 'left') currNode.make(lastNode.pos.add(0, 80 + this.groupsSpace));
 
             currLevelNodes.push(currNode);
