@@ -5,6 +5,15 @@ import { Vec } from "@pestras/space/geometery/measure";
 import { Layer } from "@pestras/space/containers/layer";
 import { chartState } from "./chart-state";
 
+export enum Orientation {
+  TOP = 0,
+  RIGHT_TOP,
+  RIGHT,
+  BOTTOM,
+  LEFT,
+  LEFT_TOP
+};
+
 export class LinkPath {
   protected _path: Path;
   protected _circle: Circle;
@@ -13,12 +22,12 @@ export class LinkPath {
     protected layer: Layer,
     protected readonly from: ChartNode,
     protected readonly to: ChartNode,
-    orientation: 'top' | 'right-top' | 'right' | 'bottom' | 'left' | 'left-top' = 'top',
+    orientation: Orientation = Orientation.TOP,
     levelSpace = 80
   ) {
     let pathBlocks: PathBlocks = [];
-    if (orientation === 'top' || orientation === 'bottom') {
-      let factor = orientation === 'bottom' ? -1 : 1;
+    if (orientation === Orientation.TOP || orientation === Orientation.BOTTOM) {
+      let factor = orientation === Orientation.BOTTOM ? -1 : 1;
       if (this.from.pos.x === this.to.pos.x) {
         pathBlocks.push(['l', ['r', new Vec(0, levelSpace * factor)]]);
       } else {
@@ -29,10 +38,10 @@ export class LinkPath {
         );
       }
 
-      this._path = new Path(this.from.pos.add(175, orientation === 'bottom' ? 0 : 80), ...pathBlocks);
+      this._path = new Path(this.from.pos.add(175, orientation === Orientation.BOTTOM ? 0 : 80), ...pathBlocks);
 
-    } else if (orientation === 'right' || orientation === 'left' || orientation === 'right-top' || orientation === 'left-top') {
-      let factor = orientation === 'right' || orientation === 'right-top' ? -1 : 1;
+    } else if (orientation === Orientation.RIGHT || orientation === Orientation.LEFT || orientation === Orientation.RIGHT_TOP || orientation === Orientation.LEFT_TOP) {
+      let factor = orientation === Orientation.RIGHT || orientation === Orientation.RIGHT_TOP ? -1 : 1;
       if (this.from.pos.y === this.to.pos.y) {
         pathBlocks.push(['l', ['r', new Vec(levelSpace * factor, 0)]]);
       } else {
@@ -43,7 +52,7 @@ export class LinkPath {
         );
       }
 
-      this._path = new Path(this.from.pos.add(orientation === 'right' || orientation === 'right-top' ? 0 : 350, 40), ...pathBlocks);
+      this._path = new Path(this.from.pos.add(orientation === Orientation.RIGHT || orientation === Orientation.RIGHT_TOP ? 0 : 350, 40), ...pathBlocks);
     }
 
     this._path.style(chartState.style.linkPath);
