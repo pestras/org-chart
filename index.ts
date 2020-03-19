@@ -16,8 +16,7 @@ export interface OrgChartOptions {
   rtl?: boolean;
   initialZoom?: number;
   bgc?: string;
-  rootYPos?: number;
-  orientation?: 'top' | 'right' | 'bottom' | 'left',
+  orientation?: 'top' | 'right-top' | 'right' | 'bottom' | 'left' | 'left-top',
   siblingsSpace?: number;
   groupsSpace?: number;
   levelSpace?: number;
@@ -31,7 +30,7 @@ export class OrgChart {
   private data: BasicNodeData[];
   private linkPaths: LinkPath[] = [];
   private rootYPos = -200;
-  private orientation: 'top' | 'right' | 'bottom' | 'left' = 'top';
+  private orientation: 'top' | 'right-top' | 'right' | 'bottom' | 'left' | 'left-top';
   private siblingsSpace = 20;
   private groupsSpace = 40;
   private levelSpace = 80;
@@ -44,8 +43,7 @@ export class OrgChart {
     if (options.style)
       for (let cat in options.style)
         Object.assign(chartState.style[cat as keyof ChartStyle], options.style[cat as keyof ChartStyle]);
-
-    options.rootYPos && (this.rootYPos = options.rootYPos);
+        
     options.orientation && (this.orientation = options.orientation);
     options.siblingsSpace && (this.siblingsSpace = options.siblingsSpace);
     options.groupsSpace && (this.groupsSpace = options.groupsSpace);
@@ -94,10 +92,10 @@ export class OrgChart {
       if (this.orientation === 'bottom') node.make(lastNode
         ? lastNode.pos.add(350 + (lastNode.pid === node.pid ? this.siblingsSpace : this.groupsSpace), 0)
         : new Vec(0, (-80 - this.levelSpace) * level));
-      else if (this.orientation === 'right') node.make(lastNode
+      else if (this.orientation === 'right' || this.orientation === 'right-top') node.make(lastNode
         ? lastNode.pos.add(0, 80 + (lastNode.pid === node.pid ? this.siblingsSpace : this.groupsSpace))
         : new Vec((-350 - this.levelSpace) * level, 0));
-      else if (this.orientation === 'left') node.make(lastNode
+      else if (this.orientation === 'left' || this.orientation === 'left-top') node.make(lastNode
         ? lastNode.pos.add(0, 80 + (lastNode.pid === node.pid ? this.siblingsSpace : this.groupsSpace))
         : new Vec((350 + this.levelSpace) * level, 0));
 
@@ -159,7 +157,9 @@ export class OrgChart {
         if (this.orientation === 'top') pos = new Vec(group[0].pos.add(group[group.length - 1].pos).x / 2, currLevelIndex * (80 + this.levelSpace));
         if (this.orientation === 'bottom') pos = new Vec(group[0].pos.add(group[group.length - 1].pos).x / 2, currLevelIndex * (-80 - this.levelSpace));
         else if (this.orientation === 'right') pos = new Vec(currLevelIndex * (-350 - this.levelSpace), group[0].pos.add(group[group.length - 1].pos).y / 2);
+        else if (this.orientation === 'right-top') pos = new Vec(currLevelIndex * (-350 - this.levelSpace), group[0].pos.y);
         else if (this.orientation === 'left') pos = new Vec(currLevelIndex * (350 + this.levelSpace), group[0].pos.add(group[group.length - 1].pos).y / 2);
+        else if (this.orientation === 'left-top') pos = new Vec(currLevelIndex * (350 + this.levelSpace), group[0].pos.y);
         parentNode.make(pos);
         group.forEach(node => {
           node.attach(parentNode)
@@ -181,8 +181,10 @@ export class OrgChart {
               let siblingData = siblingsData[j];
               let siblingNode = new BasicNode(this.chartLayer, siblingData);
 
-              if (this.orientation === 'top' || this.orientation === 'bottom') siblingNode.make(prevSiblingNode.pos.add(350 + this.siblingsSpace, 0));
-              else if (this.orientation === 'right' || this.orientation === 'left') siblingNode.make(prevSiblingNode.pos.add(0, 80 + this.siblingsSpace));
+              if (this.orientation === 'top' || this.orientation === 'bottom')
+                siblingNode.make(prevSiblingNode.pos.add(350 + this.siblingsSpace, 0));
+              else if (this.orientation === 'right' || this.orientation === 'left' || this.orientation === 'right-top' || this.orientation === 'left-top')
+                siblingNode.make(prevSiblingNode.pos.add(0, 80 + this.siblingsSpace));
 
               siblingNode.attach(prevSiblingNode);
               prevSiblingNode = siblingNode;
@@ -194,7 +196,7 @@ export class OrgChart {
                 let nextNode = currLevelNodes[i + 1];
                 if (this.orientation === 'top' || this.orientation === 'bottom') {
                   if (nextNode.pos.x - siblingNode.pos.x < 350 + this.siblingsSpace) nextNode.pos = siblingNode.pos.add(350 + this.siblingsSpace, 0);
-                } else if (this.orientation === 'right' || this.orientation === 'left') {
+                } else if (this.orientation === 'right' || this.orientation === 'left' || this.orientation === 'right-top' || this.orientation === 'left-top') {
                   if (nextNode.pos.y - siblingNode.pos.y < 80 + this.siblingsSpace) nextNode.pos = siblingNode.pos.add(0, 80 + this.siblingsSpace);
                 }
               }
@@ -209,8 +211,10 @@ export class OrgChart {
           for (let i = 0; i < restNodesData.length; i++) {
             const curr = restNodesData[i];
             let currNode = new BasicNode(this.chartLayer, curr);
-            if (this.orientation === 'top' || this.orientation === 'bottom') currNode.make(lastNode.pos.add(350 + this.groupsSpace, 0));
-            else if (this.orientation === 'right' || this.orientation === 'left') currNode.make(lastNode.pos.add(0, 80 + this.groupsSpace));
+            if (this.orientation === 'top' || this.orientation === 'bottom')
+              currNode.make(lastNode.pos.add(350 + this.groupsSpace, 0));
+            else if (this.orientation === 'right' || this.orientation === 'left' || this.orientation === 'right-top' || this.orientation === 'left-top')
+              currNode.make(lastNode.pos.add(0, 80 + this.groupsSpace));
 
             currLevelNodes.push(currNode);
             lastNode = currNode;
@@ -223,10 +227,12 @@ export class OrgChart {
       lastGroupIndex = 0;
     }
 
-    if (this.orientation === 'top') currLevelNodes[0].box.pos = new Vec(-175, this.rootYPos);
-    else if (this.orientation === 'bottom') currLevelNodes[0].box.pos = new Vec(-175, -this.rootYPos);
-    else if (this.orientation === 'right') currLevelNodes[0].box.pos = new Vec(-this.rootYPos, -40);
-    else if (this.orientation === 'left') currLevelNodes[0].box.pos = new Vec(this.rootYPos, -40);
+    if (this.orientation === 'top') currLevelNodes[0].box.pos = new Vec(-175, -this.space.viewSize.h / 4);
+    else if (this.orientation === 'bottom') currLevelNodes[0].box.pos = new Vec(-175, this.space.viewSize.h / 4);
+    else if (this.orientation === 'right') currLevelNodes[0].box.pos = new Vec((this.space.viewSize.w / 4) - 100, -40);
+    else if (this.orientation === 'right-top') currLevelNodes[0].box.pos = new Vec((this.space.viewSize.w / 4) - 100, -this.space.viewSize.h / 4);
+    else if (this.orientation === 'left') currLevelNodes[0].box.pos = new Vec(-this.space.viewSize.w / 4, -40);
+    else if (this.orientation === 'left-top') currLevelNodes[0].box.pos = new Vec(-this.space.viewSize.w / 4, -this.space.viewSize.h / 4);
     this.space.render();
   }
 

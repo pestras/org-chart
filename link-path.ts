@@ -13,7 +13,7 @@ export class LinkPath {
     protected layer: Layer,
     protected readonly from: ChartNode,
     protected readonly to: ChartNode,
-    orientation: 'top' | 'right' | 'bottom' | 'left' = 'top',
+    orientation: 'top' | 'right-top' | 'right' | 'bottom' | 'left' | 'left-top' = 'top',
     levelSpace = 80
   ) {
     let pathBlocks: PathBlocks = [];
@@ -31,8 +31,8 @@ export class LinkPath {
 
       this._path = new Path(this.from.pos.add(175, orientation === 'bottom' ? 0 : 80), ...pathBlocks);
 
-    } else if (orientation === 'right' || orientation === 'left') {
-      let factor = orientation === 'right' ? -1 : 1;
+    } else if (orientation === 'right' || orientation === 'left' || orientation === 'right-top' || orientation === 'left-top') {
+      let factor = orientation === 'right' || orientation === 'right-top' ? -1 : 1;
       if (this.from.pos.y === this.to.pos.y) {
         pathBlocks.push(['l', ['r', new Vec(levelSpace * factor, 0)]]);
       } else {
@@ -43,7 +43,7 @@ export class LinkPath {
         );
       }
 
-      this._path = new Path(this.from.pos.add(orientation === 'right' ? 0 : 350, 40), ...pathBlocks);
+      this._path = new Path(this.from.pos.add(orientation === 'right' || orientation === 'right-top' ? 0 : 350, 40), ...pathBlocks);
     }
 
     this._path.style(chartState.style.linkPath);
