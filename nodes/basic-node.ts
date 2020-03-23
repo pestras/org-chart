@@ -2,9 +2,9 @@ import { ChartNode, ChartNodeData } from "./chart-node";
 import { Vec, FlexSize } from "@pestras/space/geometery/measure";
 import { Layer } from "@pestras/space/containers/layer";
 import { TextBox } from "@pestras/space/geometery/drawables/text";
-import { chartState } from "../chart-state";
 import { Box } from "@pestras/space/geometery/drawables/box";
 import { Img } from "@pestras/space/geometery/drawables/img";
+import { IChart } from "../chart.interface";
 
 export interface BasicNodeNameStyle {
   fontColor?: string;
@@ -47,8 +47,11 @@ export class BasicNode extends ChartNode {
     strokeStyle: '#555555'
   }
 
-  constructor(layer: Layer, data: BasicNodeData) {
-    super(layer, data);
+  constructor(
+    chart: IChart,
+    data: BasicNodeData
+  ) {
+    super(chart, data);
     this.title = data.title.text;
     this.cat = data.cat ? data.cat.text : null;
     this.icon = data.icon;
@@ -58,29 +61,29 @@ export class BasicNode extends ChartNode {
 
   make(pos: Vec) {
     this.pos = pos
-    this._box = new Box(pos, new FlexSize(350, 80));
+    this._box = new Box(this.chart.space, pos, new FlexSize(350, 80));
     this._box.style(this.style);
-    this.subs.push(this._box.click$.subscribe(() => chartState.click$.next(this._id)));
+    this.subs.push(this._box.click$.subscribe(() => this.chart.click$.next(this._id)));
     this.subs.push(this.box.mousein$.subscribe(() => this.box.style(this.hoverStyle)));
     this.subs.push(this.box.mouseout$.subscribe(() => this.box.style(this.style)));
 
     if (this.cat) {
-      this.catBox = new TextBox(this.cat, new Vec(chartState.rtl ? 270 : 80, 15), new FlexSize(200, 20));
+      this.catBox = new TextBox(this.chart.space, this.cat, new Vec(this.chart.rtl ? 270 : 80, 15), new FlexSize(200, 20));
       this.catBox.style('textOverflow', 'truncate');
-      chartState.rtl && this.catBox.style('textAlign', 'right');
+      this.chart.rtl && this.catBox.style('textAlign', 'right');
       this.catBox.style(this.catStyle);
       this.catBox.actionable = false;
       this._box.addShapes(this.catBox);
     }
 
-    this.titleBox = new TextBox(this.title, new Vec(chartState.rtl ? 270 : 80, this.cat ? 35 : 25), new FlexSize(200, 30));
+    this.titleBox = new TextBox(this.chart.space, this.title, new Vec(this.chart.rtl ? 270 : 80, this.cat ? 35 : 25), new FlexSize(200, 30));
     this.titleBox.style('textOverflow', 'truncate');
-    chartState.rtl && this.titleBox.style('textAlign', 'right');
+    this.chart.rtl && this.titleBox.style('textAlign', 'right');
     this.titleBox.style(this.titleStyle);
     this.titleBox.actionable = false;
 
     if (this.icon) {
-      this.iconImg = new Img(this.icon, new Vec(chartState.rtl ? 290 : 25, 25), new FlexSize(32, 32));
+      this.iconImg = new Img(this.chart.space, this.icon, new Vec(this.chart.rtl ? 290 : 25, 25), new FlexSize(32, 32));
       this.iconImg.actionable = false;
       this._box.addShapes(this.iconImg);
     }

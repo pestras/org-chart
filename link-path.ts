@@ -2,8 +2,7 @@ import { ChartNode } from "./nodes/chart-node";
 import { Path, PathBlocks } from '@pestras/space/geometery/drawables/path';
 import { Circle } from '@pestras/space/geometery/drawables/circle';
 import { Vec } from "@pestras/space/geometery/measure";
-import { Layer } from "@pestras/space/containers/layer";
-import { chartState } from "./chart-state";
+import { IChart } from "./chart.interface";
 
 export enum Orientation {
   TOP = 0,
@@ -19,7 +18,7 @@ export class LinkPath {
   protected _circle: Circle;
 
   constructor(
-    protected layer: Layer,
+    protected chart: IChart,
     protected readonly from: ChartNode,
     protected readonly to: ChartNode,
     orientation: Orientation = Orientation.TOP,
@@ -38,7 +37,7 @@ export class LinkPath {
         );
       }
 
-      this._path = new Path(this.from.pos.add(175, orientation === Orientation.BOTTOM ? 0 : 80), ...pathBlocks);
+      this._path = new Path(this.chart.space, this.from.pos.add(175, orientation === Orientation.BOTTOM ? 0 : 80), ...pathBlocks);
 
     } else if (orientation === Orientation.RIGHT || orientation === Orientation.LEFT || orientation === Orientation.RIGHT_TOP || orientation === Orientation.LEFT_TOP) {
       let factor = orientation === Orientation.RIGHT || orientation === Orientation.RIGHT_TOP ? -1 : 1;
@@ -52,23 +51,23 @@ export class LinkPath {
         );
       }
 
-      this._path = new Path(this.from.pos.add(orientation === Orientation.RIGHT || orientation === Orientation.RIGHT_TOP ? 0 : 350, 40), ...pathBlocks);
+      this._path = new Path(this.chart.space, this.from.pos.add(orientation === Orientation.RIGHT || orientation === Orientation.RIGHT_TOP ? 0 : 350, 40), ...pathBlocks);
     }
 
-    this._path.style(chartState.style.linkPath);
+    this._path.style(this.chart.style.linkPath);
     this._path.actionable = false;
 
-    this._circle = new Circle(this._path.pos.add(-10, -10), 10);
-    this._circle.style(chartState.style.pathCircle);
+    this._circle = new Circle(this.chart.space, this._path.pos.add(-10, -10), 10);
+    this._circle.style(this.chart.style.pathCircle);
     this._circle.actionable = false;
 
     this._path.attach(this.from.box);
     this._circle.attach(this._path);
-    layer.addShapes(this._path, this._circle);
+    this.chart.chartLayer.addShapes(this._path, this._circle);
   }
 
   destroy() {
-    this.layer.removeShapes(this._circle, this._path);
+    this.chart.chartLayer.removeShapes(this._circle, this._path);
     this._path.destory();
   }
 }

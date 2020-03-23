@@ -2,12 +2,12 @@ import { Observable, Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { Space } from '@pestras/space';
 import { Layer } from '@pestras/space/containers/layer';
-import { chartState, ChartStyle } from './chart-state';
+import { ChartStyle } from './chart.interface';
 import { BasicNodeData, BasicNode } from './nodes/basic-node';
 import { ChartNode } from './nodes/chart-node';
 import { LinkPath } from './link-path';
 import { Vec } from '@pestras/space/geometery/measure';
-import { state } from '@pestras/space/state';
+import { Subject } from 'rxjs';
 
 export enum Orientation {
   TOP = 0,
@@ -33,8 +33,6 @@ export interface OrgChartOptions {
 
 export class OrgChart {
   private dataSub: Subscription;
-  private space: Space;
-  private chartLayer: Layer;
   private nodes: ChartNode[][] = [];
   private data: BasicNodeData[];
   private linkPaths: LinkPath[] = [];
@@ -42,15 +40,37 @@ export class OrgChart {
   private siblingsSpace = 20;
   private groupsSpace = 40;
   private levelSpace = 80;
-
-  readonly nodeClick$ = chartState.click$;
+  readonly space: Space;
+  readonly click$ = new Subject<any>();
+  chartLayer: Layer;
+  levelSpacing = 50;
+  siblingSpacing = 40;
+  nodeSpacing = 20;
+  style: ChartStyle = {
+    chartNode: {
+      fill: '#48AF55',
+      strokeStyle: '#555555',
+      lineWidth: 0,
+      radius: 40
+    },
+    chartNodeHover: { fill: '#59BF66' },
+    linkPath: {
+      fill: null,
+      strokeStyle: '#888888',
+      lineWidth: 1
+    },
+    pathCircle: {
+      fill: '#FFFFFF',
+      strokeStyle: '#888888',
+      lineWidth: 1
+    }
+  }
 
   constructor(id: string, data$: Observable<BasicNodeData[]>, options: OrgChartOptions = {}) {
-    if (options.rtl !== undefined) chartState.rtl = options.rtl;
-    options.rtl && state.canvas.setAttribute('dir', 'rtl');
+    if (options.rtl !== undefined) this.rtl = options.rtl;
     if (options.style)
       for (let cat in options.style)
-        Object.assign(chartState.style[cat as keyof ChartStyle], options.style[cat as keyof ChartStyle]);
+        Object.assign(this.style[cat as keyof ChartStyle], options.style[cat as keyof ChartStyle]);
         
     options.orientation && (this._orientation = options.orientation);
     options.siblingsSpace && (this.siblingsSpace = options.siblingsSpace);
@@ -92,7 +112,7 @@ export class OrgChart {
     let nodes: ChartNode[] = [], lastNode: ChartNode;
 
     for (let i = 0; i < nodesData.length; i++) {
-      let node = new BasicNode(this.chartLayer, nodesData[i]);
+      let node = new BasicNode(this, nodesData[i]);
 
       if (this._orientation === Orientation.TOP) node.make(lastNode
         ? lastNode.pos.add(350 + (lastNode.pid === node.pid ? this.siblingsSpace : this.groupsSpace), 0)
@@ -131,7 +151,7 @@ export class OrgChart {
 
   private createChart() {
     this.clean();
-    this.chartLayer = new Layer();
+    this.chartLayer = new Layer(this.space);
     this.space.addLayers(this.chartLayer);
     let levels = this.generateLevels(this.data);
     let currLevelIndex = levels.length - 1;
@@ -158,7 +178,7 @@ export class OrgChart {
       while (lastGroupIndex < prevLevelNodes.length) {
         group = this.getChildrenGroup(prevLevelNodes.slice(lastGroupIndex));
         lastGroupIndex += group.length;
-        let parentNode = new BasicNode(this.chartLayer, currLevelData.find(item => item.id === group[0].pid));
+        let parentNode = new BasicNode(this, currLevelData.find(item => item.id === group[0].pid));
         currLevelNodes.push(parentNode);
         if (currLevelNodes.length > 1) parentNode.attach(currLevelNodes[length - 2]);
         let pos: Vec;
@@ -171,7 +191,7 @@ export class OrgChart {
         parentNode.make(pos);
         group.forEach(node => {
           node.attach(parentNode)
-          this.linkPaths.push(new LinkPath(this.chartLayer, parentNode, node, this._orientation, this.levelSpace));
+          this.linkPaths.push(new LinkPath(this, parentNode, node, this._orientation, this.levelSpace));
         });
       }
 
@@ -187,7 +207,7 @@ export class OrgChart {
             let prevSiblingNode = curr;
             for (let j = 0; j < siblingsData.length; j++) {
               let siblingData = siblingsData[j];
-              let siblingNode = new BasicNode(this.chartLayer, siblingData);
+              let siblingNode = new BasicNode(this, siblingData);
 
               if (this._orientation === Orientation.TOP || this._orientation === Orientation.BOTTOM)
                 siblingNode.make(prevSiblingNode.pos.add(350 + this.siblingsSpace, 0));
@@ -218,7 +238,7 @@ export class OrgChart {
           let lastNode = currLevelNodes[currLevelNodes.length - 1];
           for (let i = 0; i < restNodesData.length; i++) {
             const curr = restNodesData[i];
-            let currNode = new BasicNode(this.chartLayer, curr);
+            let currNode = new BasicNode(this, curr);
             if (this._orientation === Orientation.TOP || this._orientation === Orientation.BOTTOM)
               currNode.make(lastNode.pos.add(350 + this.groupsSpace, 0));
             else if (this._orientation === Orientation.RIGHT || this._orientation === Orientation.LEFT || this._orientation === Orientation.RIGHT_TOP || this._orientation === Orientation.LEFT_TOP)
@@ -248,10 +268,9 @@ export class OrgChart {
     this.space.zoom(amount);
   }
 
-  get rtl() { return state.canvas.getAttribute('dir') === 'rtl'; }
+  get rtl() { return this.space.canvas.getAttribute('dir') === 'rtl'; }
   set rtl(val: boolean) {
-    state.canvas.setAttribute('dir', val ? 'rtl' : 'ltr');
-    chartState.rtl = val;
+    this.space.canvas.setAttribute('dir', val ? 'rtl' : 'ltr');
     if (this._orientation === Orientation.RIGHT || this._orientation === Orientation.LEFT) this._orientation = val === true ? Orientation.RIGHT : Orientation.LEFT;
     if (this._orientation === Orientation.RIGHT_TOP || this._orientation === Orientation.LEFT_TOP) this._orientation = val === true ? Orientation.RIGHT_TOP : Orientation.LEFT_TOP;
     if (this.data) {

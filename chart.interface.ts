@@ -1,5 +1,6 @@
 import { Subject } from 'rxjs';
-import { state } from '@pestras/space/state';
+import { Space } from '@pestras/space';
+import { Layer } from '@pestras/space/containers/layer';
 
 export interface ChartNodeStyle {
   fill?: string,
@@ -37,29 +38,13 @@ export interface ChartState {
   rtl: boolean;
 }
 
-export const chartState: ChartState = {
-  click$: new Subject<any>(),
-  rtl: false,
-  levelSpacing: 50,
-  siblingSpacing: 40,
-  nodeSpacing: 20,
-  style: {
-    chartNode: {
-      fill: '#48AF55',
-      strokeStyle: '#555555',
-      lineWidth: 0,
-      radius: 40
-    },
-    chartNodeHover: { fill: '#59BF66' },
-    linkPath: {
-      fill: null,
-      strokeStyle: '#888888',
-      lineWidth: 1
-    },
-    pathCircle: {
-      fill: '#FFFFFF',
-      strokeStyle: '#888888',
-      lineWidth: 1
-    }
-  }
+export interface IChart {
+  space: Space;
+  chartLayer: Layer;
+  click$: Subject<any>;
+  rtl: boolean;
+  levelSpacing: number;
+  siblingSpacing: number;
+  nodeSpacing: number;
+  style: ChartStyle
 }

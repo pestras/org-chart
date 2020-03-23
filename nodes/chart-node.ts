@@ -3,7 +3,7 @@ import { Box } from '@pestras/space/geometery/drawables/box';
 import { Layer } from '@pestras/space/containers/layer';
 import { Vec } from '@pestras/space/geometery/measure';
 import { Shape } from '@pestras/space/geometery/shape';
-import { ChartNodeStyle, chartState } from '../chart-state';
+import { ChartNodeStyle, IChart } from '../chart.interface';
 
 export interface ChartNodeData {
   id: string;
@@ -18,14 +18,14 @@ export abstract class ChartNode {
   protected _box: Box;
   protected subs: Subscription[] = [];
   protected shapes: Shape[] = [];
-  protected style = Object.assign({}, chartState.style.chartNode);
-  protected hoverStyle = Object.assign({}, chartState.style.chartNodeHover);
+  protected style = Object.assign({}, this.chart.style.chartNode);
+  protected hoverStyle = Object.assign({}, this.chart.style.chartNodeHover);
 
   pos: Vec;
 
   public readonly data: ChartNodeData;
 
-  constructor(protected layer: Layer, data: ChartNodeData) {
+  constructor(protected chart: IChart, data: ChartNodeData) {
     this._id = data.id;
     this._pid = data.pid;
     if (data.style) Object.assign(this.style, data.style);
@@ -36,7 +36,7 @@ export abstract class ChartNode {
 
   protected addShapes(...shapes: Shape[]) {
     for (let shape of shapes) {
-      this.layer.addShapes(shape);
+      this.chart.chartLayer.addShapes(shape);
       this.shapes.push(shape);
     }
   }
@@ -48,7 +48,7 @@ export abstract class ChartNode {
 
   destroy() {
     for (let sub of this.subs) sub.unsubscribe();
-    this.layer.removeShapes(...this.shapes);
+    this.chart.chartLayer.removeShapes(...this.shapes);
     for (let shape of this.shapes) {
       shape.destory();
     }
