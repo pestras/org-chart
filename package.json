@@ -1,6 +1,6 @@
 {
   "name": "@pestras/org-chart",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "description": "Org chart Diagram",
   "main": "index.js",
   "types": "index.ts",
@@ -30,6 +30,6 @@
     "typescript": "^3.4.3"
   },
   "dependencies": {
-    "@pestras/space": "0.0.21"
+    "@pestras/space": "0.0.22"
   }
 }
