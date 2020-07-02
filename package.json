@@ -30,6 +30,6 @@
     "typescript": "^3.4.3"
   },
   "dependencies": {
-    "@pestras/space": "0.0.22"
+    "@pestras/space": "0.1.1"
   }
 }

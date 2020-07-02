@@ -261,7 +261,7 @@ export class OrgChart {
     else if (this._orientation === Orientation.RIGHT_TOP) currLevelNodes[0].box.pos = new Vec((this.space.viewSize.w / 4) - 100, -this.space.viewSize.h / 4);
     else if (this._orientation === Orientation.LEFT) currLevelNodes[0].box.pos = new Vec(-this.space.viewSize.w / 4, -40);
     else if (this._orientation === Orientation.LEFT_TOP) currLevelNodes[0].box.pos = new Vec(-this.space.viewSize.w / 4, -this.space.viewSize.h / 4);
-    this.space.render();
+    this.space.draw();
   }
 
   zoom(amount: number) {
